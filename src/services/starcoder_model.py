@@ -6,9 +6,26 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 class StarCoderModel(BaseModel):
     def __init__(self, model_name: str):
+        """
+        Initializes the StarCoderModel with the specified model name.
+        
+        Args:
+            model_name: The identifier for the model to be loaded.
+        """
         super().__init__(model_name)
 
     def load_model(self, model_name):
+        """
+        Loads a language model and tokenizer, supporting both base models and local PEFT AdaLoRA adapters.
+        
+        If a local PEFT adapter is detected for the given model name, loads the base model and applies the adapter, printing diagnostic information about the adapter configuration and modules. Otherwise, loads the base model and tokenizer from the HuggingFace repository. The tokenizer's padding token is set to the end-of-sequence token.
+        
+        Args:
+            model_name: The name of the model to load, either as a local directory or HuggingFace identifier.
+        
+        Returns:
+            A tuple containing the loaded model and tokenizer.
+        """
         model_path = os.path.join("models", model_name)
         is_local_model = os.path.exists(model_path)
         is_peft_model = is_local_model and os.path.exists(os.path.join(model_path, "adapter_config.json"))
@@ -89,6 +106,17 @@ class StarCoderModel(BaseModel):
         return model, tokenizer
 
     def generate_from_prompt(self, prompt: str):
+        """
+        Generates text from a given prompt using the loaded language model.
+        
+        The prompt is tokenized with a separator, processed by the model to generate a continuation, and the output is decoded into a string with special tokens removed.
+        
+        Args:
+            prompt: The input text prompt to generate a continuation from.
+        
+        Returns:
+            The generated text as a string.
+        """
         inputs = self.tokenizer(prompt + "<SEP> ", return_tensors="pt", max_length=512, truncation=True)
         inputs = {key: value.to(self.model.device) for key, value in inputs.items()}
         with torch.no_grad():
